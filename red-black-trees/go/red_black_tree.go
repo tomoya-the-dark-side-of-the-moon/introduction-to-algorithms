@@ -22,7 +22,7 @@ type Tree struct {
 
 var sentinel *Element
 
-func nil_element() *Element {
+func nilElement() *Element {
 	if sentinel == nil {
 		sentinel = &Element{key: -1, color: black}
 	}
@@ -33,8 +33,8 @@ func nil_element() *Element {
 func (t *Tree) put(z *Element) {
 	t.size++
 
-	var y *Element = nil_element()
-	for x := t.root; x != nil_element(); {
+	var y *Element = nilElement()
+	for x := t.root; x != nilElement(); {
 		y = x
 		if z.key < x.key {
 			x = x.left
@@ -43,10 +43,10 @@ func (t *Tree) put(z *Element) {
 		}
 	}
 
-	z.left = nil_element()
-	z.right = nil_element()
+	z.left = nilElement()
+	z.right = nilElement()
 	z.parent = y
-	if y == nil_element() {
+	if y == nilElement() {
 		t.root = z
 	} else {
 		if z.key < y.key {
@@ -57,12 +57,10 @@ func (t *Tree) put(z *Element) {
 	}
 
 	t.fixAfterInsertion(z)
-
-	t.height = t.getHeight()
 }
 
 func (t *Tree) contains(key int) *Element {
-	for p := t.root; p != nil; {
+	for p := t.root; p != nilElement(); {
 		if p.key == key {
 			return p
 		} else if key < p.key {
@@ -72,13 +70,13 @@ func (t *Tree) contains(key int) *Element {
 		}
 	}
 
-	return nil
+	return nilElement()
 }
 
 func (t *Tree) successor(x *Element) *Element {
-	if x.right != nil {
+	if x.right != nilElement() {
 		var p *Element
-		for p = x.right; p.left != nil; {
+		for p = x.right; p.left != nilElement(); {
 			p = p.left
 		}
 
@@ -86,7 +84,7 @@ func (t *Tree) successor(x *Element) *Element {
 	} else {
 		p := x
 		q := p.parent
-		for q != nil && q.right == p {
+		for q != nilElement() && q.right == p {
 			p = q
 			q = p.parent
 		}
@@ -98,37 +96,48 @@ func (t *Tree) successor(x *Element) *Element {
 func (t *Tree) remove(z *Element) {
 	t.size--
 
-	if z.left == nil {
+	y := z
+	colorOfY := y.color
+	var x *Element
+	if z.left == nilElement() {
+		x = z.right
 		t.transplant(z, z.right)
-	} else if z.right == nil {
+	} else if z.right == nilElement() {
+		x = z.left
 		t.transplant(z, z.left)
 	} else {
-		y := t.successor(z)
+		y = t.successor(z)
+		x = y.right
+		colorOfY = y.color
 		if y.parent != z {
 			t.transplant(y, y.right)
 			y.right = z.right
 			y.right.parent = y
+		} else {
+			x.parent = y
 		}
 		t.transplant(z, y)
 		y.left = z.left
 		y.left.parent = y
+		y.color = z.color
 	}
 
-	z = nil
+	if colorOfY == black {
+		t.fixAfterDeletion(x)
+	}
 
-	t.height = t.getHeight()
 }
 
 func (t *Tree) printTree() {
-	fmt.Printf("size = %d, height = %d\n", t.size, t.height)
+	fmt.Printf("size = %d, height = %d\n", t.size, t.getHeight())
 
-	if t.root != nil_element() {
+	if t.root != nilElement() {
 		printTreeInternal(t.root, 0)
 	}
 }
 
 func (t *Tree) transplant(x, y *Element) {
-	if x.parent == nil {
+	if x.parent == nilElement() {
 		t.root = y
 	} else if x == x.parent.left {
 		x.parent.left = y
@@ -136,17 +145,15 @@ func (t *Tree) transplant(x, y *Element) {
 		x.parent.right = y
 	}
 
-	if y != nil {
-		y.parent = x.parent
-	}
+	y.parent = x.parent
 }
 
-func printTreeInternal(r *Element, space_size int) {
-	if r.left != nil_element() {
-		printTreeInternal(r.left, space_size+1)
+func printTreeInternal(r *Element, spaceSize int) {
+	if r.left != nilElement() {
+		printTreeInternal(r.left, spaceSize+1)
 	}
 
-	for range space_size {
+	for range spaceSize {
 		fmt.Print("    ")
 	}
 	fmt.Printf("%d(", r.key)
@@ -156,13 +163,13 @@ func printTreeInternal(r *Element, space_size int) {
 		fmt.Println("RED)")
 	}
 
-	if r.right != nil_element() {
-		printTreeInternal(r.right, space_size+1)
+	if r.right != nilElement() {
+		printTreeInternal(r.right, spaceSize+1)
 	}
 }
 
 func (t *Tree) getHeight() int {
-	if t.root == nil_element() {
+	if t.root == nilElement() {
 		return 0
 	}
 
@@ -170,7 +177,7 @@ func (t *Tree) getHeight() int {
 }
 
 func (t *Tree) getHeightInternal(r *Element) int {
-	if r == nil_element() {
+	if r == nilElement() {
 		return -1
 	}
 
@@ -186,12 +193,12 @@ func (t *Tree) getHeightInternal(r *Element) int {
 func (t *Tree) rotateLeft(x *Element) {
 	y := x.right
 	x.right = y.left
-	if y.left != nil_element() {
-		y.left.parent = y
+	if y.left != nilElement() {
+		y.left.parent = x
 	}
 
 	y.parent = x.parent
-	if x.parent == nil_element() {
+	if x.parent == nilElement() {
 		t.root = y
 	} else if x == x.parent.left {
 		x.parent.left = y
@@ -206,12 +213,12 @@ func (t *Tree) rotateLeft(x *Element) {
 func (t *Tree) rotateRight(x *Element) {
 	y := x.left
 	x.left = y.right
-	if y.right != nil_element() {
-		y.right.parent = y
+	if y.right != nilElement() {
+		y.right.parent = x
 	}
 
 	y.parent = x.parent
-	if x.parent == nil_element() {
+	if x.parent == nilElement() {
 		t.root = y
 	} else if x == x.parent.left {
 		x.parent.left = y
@@ -269,8 +276,81 @@ func (t *Tree) fixAfterInsertion(z *Element) {
 	t.root.color = black
 }
 
+func (t *Tree) fixAfterDeletion(x *Element) {
+	for x != t.root && x.color == black {
+		if x == x.parent.left {
+			w := x.parent.right
+			if w.color == red {
+				// case 1
+				x.parent.color = red
+				w.color = black
+				t.rotateLeft(x.parent)
+				w = x.parent.right
+			}
+			if w.left.color == black && w.right.color == black {
+				// case 2
+				w.color = red
+				x = x.parent
+			} else {
+				if w.right.color == black {
+					// case 3
+					w.color = red
+					w.left.color = black
+					t.rotateRight(w)
+					w = x.parent.right
+				}
+				// case 4
+				w.color = x.parent.color
+				x.parent.color = black
+				w.right.color = black
+				t.rotateLeft(x.parent)
+				x = t.root
+			}
+		} else {
+			w := x.parent.left
+			if w.color == red {
+				// case 1
+				x.parent.color = red
+				w.color = black
+				t.rotateRight(x.parent)
+				w = x.parent.left
+			}
+			if w.right.color == black && w.left.color == black {
+				// case 2
+				w.color = red
+				x = x.parent
+			} else {
+				if w.left.color == black {
+					// case 3
+					w.color = red
+					w.right.color = black
+					t.rotateLeft(w)
+					w = x.parent.left
+				}
+				// case 4
+				w.color = x.parent.color
+				x.parent.color = black
+				w.left.color = black
+				t.rotateRight(x.parent)
+				x = t.root
+			}
+		}
+	}
+
+	x.color = black
+}
+
 func main() {
-	t := &Tree{size: 0, height: 0, root: nil_element()}
+	t := &Tree{size: 0, height: 0, root: nilElement()}
+
+	t.put(&Element{key: 2})
+	t.put(&Element{key: 1})
+	t.put(&Element{key: 4})
+	t.put(&Element{key: 5})
+	t.put(&Element{key: 9})
+	t.put(&Element{key: 3})
+	t.put(&Element{key: 6})
+	t.put(&Element{key: 7})
 
 	for {
 		fmt.Print("1:put 2:remove 3:print 4:successor > ")
@@ -290,7 +370,7 @@ func main() {
 			fmt.Scanf("%d", &key)
 
 			z := t.contains(key)
-			if z == nil {
+			if z == nilElement() {
 				fmt.Printf("%d is not found in the tree.\n", key)
 			} else {
 				t.remove(z)
@@ -303,11 +383,11 @@ func main() {
 			fmt.Scanf("%d", &key)
 
 			z := t.contains(key)
-			if z == nil {
+			if z == nilElement() {
 				fmt.Printf("%d is not found in the tree.\n", key)
 			} else {
 				succ := t.successor(z)
-				if succ == nil {
+				if succ == nilElement() {
 					fmt.Println("successor is nil.")
 				} else {
 					fmt.Printf("successor = %d\n", succ.key)
