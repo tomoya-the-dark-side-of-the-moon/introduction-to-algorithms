@@ -27,6 +27,21 @@ class Tree:
         else:
             self.__insert_key_non_full(r, key)
 
+    def contains(self, key):
+        return self.__contains_internal(self.root, key)
+
+    def __contains_internal(self, x, key):
+        i = 0
+        while i < x.n and x.keys[i] < key:
+            i += 1
+
+        if i < x.n and x.keys[i] == key:
+            return True
+        elif x.is_leaf:
+            return False
+        else:
+            return self.__contains_internal(x.children[i], key)
+
     def print_tree(self):
 
         def print_tree_internal(r, space_size=1):
@@ -111,7 +126,11 @@ if __name__ == "__main__":
 
             t.insert(key)
         elif op == 2:
-            pass
+            print("input key > ", end="")
+            key = int(input())
+
+            has_key = t.contains(key)
+            print(has_key)
         elif op == 3:
             t.print_tree()
         else:
