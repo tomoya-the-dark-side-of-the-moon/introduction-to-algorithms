@@ -42,6 +42,63 @@ class Tree:
         else:
             return self.__contains_internal(x.children[i], key)
 
+    def remove(self, key):
+        self.__remove_internal(self.root, key)
+
+    def __remove_internal(self, x, key):
+        i = 0
+        while i < x.n and x.keys[i] < key:
+            i += 1
+
+        if i < x.n:
+            if x.keys[i] == key:
+                if x.is_leaf:
+                    # case 1
+                    x.keys.remove(key)
+                    x.n -= 1
+                else:
+                    if x.children[i].n >= self.min_degree:
+                        # case 2a
+                        y = x.children[i]
+                        key_to_replace = y.keys[-1]
+
+                        y.keys = y.keys[:-1]
+                        y.n -= 1
+
+                        x.keys[i] = key_to_replace
+                    elif x.children[i + 1].n >= self.min_degree:
+                        # case 2b
+                        z = x.children[i + 1]
+                        key_to_replace = z.keys[0]
+
+                        z.keys = z.keys[1:]
+                        z.n -= 1
+
+                        x.keys[i] = key_to_replace
+                    else:
+                        # case 2c
+                        y = x.children[i]
+                        z = x.children[i + 1]
+
+                        y.keys.append(key)
+                        y.n += 1
+                        y.keys.extend(z.keys)
+                        y.n += z.n
+
+                        if not y.is_leaf:
+                            y.children.extend(z.children)
+
+                        x.keys.remove(key)
+                        x.n -= 1
+                        x.children.remove(z)
+
+                        if x.n == 0:
+                            self.root = y
+
+                        self.__remove_internal(y, key)
+        else:
+            pass
+
     def print_tree(self):
 
         def print_tree_internal(r, space_size=1):
@@ -109,12 +166,12 @@ if __name__ == "__main__":
     t.insert(9)
     t.insert(3)
     t.insert(7)
-    t.insert(1)
-    t.insert(2)
-    t.insert(8)
-    t.insert(6)
-    t.insert(0)
-    t.insert(4)
+    # t.insert(1)
+    # t.insert(2)
+    # t.insert(8)
+    # t.insert(6)
+    # t.insert(0)
+    # t.insert(4)
 
     while True:
         print("1:insert 2:remove 3:print > ", end="")
@@ -130,7 +187,10 @@ if __name__ == "__main__":
             key = int(input())
 
             has_key = t.contains(key)
-            print(has_key)
+            if not has_key:
+                print(f"{key} is not found in the tree.")
+            else:
+                t.remove(key)
         elif op == 3:
             t.print_tree()
         else:
