@@ -125,57 +125,221 @@ func (t *Tree) removeInternal(x *Element, key int) {
 		i++
 	}
 
-	if i < x.n {
+	if i == x.n {
+		if x.children[i].n >= t.minDegree {
+			t.removeInternal(x.children[i], key)
+		} else {
+			if x.children[i-1].n >= t.minDegree {
+				t.liftKeyFromLeftNode(x, key, i)
+			} else {
+				t.mergeKeyToLeftNode(x, key, i)
+			}
+		}
+	} else {
 		if x.keys[i] == key {
 			if x.isLeaf {
-				// case 1
-				x.keys = slices.Delete(x.keys, i, i+1)
-				x.n--
+				t.removeKeyFromLeaf(x, key, i)
 			} else {
-				if x.children[i].n >= t.minDegree {
-					// case 2a
-					y := x.children[i]
-					keyToReplace := y.keys[y.n-1]
-
-					y.keys = slices.Clone(y.keys[:y.n-1])
-					y.n--
-
-					x.keys[i] = keyToReplace
-				} else if x.children[i+1].n >= t.minDegree {
-					// case 2b
-					z := x.children[i+1]
-					keyToReplace := z.keys[0]
-
-					z.keys = slices.Clone(z.keys[1:])
-					z.n--
-
-					x.keys[i] = keyToReplace
-				} else {
-					y := x.children[i]
-					z := x.children[i+1]
-
-					y.keys = append(y.keys, x.keys[i])
-					y.n++
-					y.keys = append(y.keys, z.keys...)
-					y.n += z.n
-
-					if !y.isLeaf {
-						y.children = append(y.children, z.children...)
-					}
-
-					x.keys = slices.Delete(x.keys, i, i+1)
-					x.n--
-					x.children = slices.Delete(x.children, i+1, i+2)
-
-					if x.n == 0 {
-						t.root = y
-					}
-
-					t.removeInternal(y, key)
-				}
+				t.removeKeyFromNode(x, key, i)
+			}
+		} else {
+			if x.children[i].n >= t.minDegree {
+				t.removeInternal(x.children[i], key)
+			} else if i > 0 && x.children[i-1].n >= t.minDegree {
+				t.liftKeyFromLeftNode(x, key, i)
+			} else if x.children[i+1].n >= t.minDegree {
+				t.liftKeyFromRightNode(x, key, i)
+			} else if i > 0 && x.children[i-1].n == t.minDegree-1 {
+				t.mergeKeyToLeftNode(x, key, i)
+			} else {
+				t.mergeKeyToRightNode(x, key, i)
 			}
 		}
 	}
+}
+
+func (t *Tree) removeKeyFromLeaf(x *Element, key, i int) {
+	// case 1
+	x.keys = slices.Delete(x.keys, i, i+1)
+	x.n--
+}
+
+func (t *Tree) removeKeyFromNode(x *Element, key, i int) {
+	if x.children[i].n >= t.minDegree {
+		// case 2a
+		y, keyToUp := t.findRightBeforeKey(x, i)
+		keyToDown := x.keys[i]
+
+		x.keys[i] = keyToUp
+		y.keys = y.keys[:y.n-1]
+		y.keys = append(y.keys, keyToDown)
+
+		t.removeInternal(x.children[i], key)
+	} else if x.children[i+1].n >= t.minDegree {
+		// case 2b
+		y, keyToUp := t.findRightAfterKey(x, i)
+		keyToDown := x.keys[i]
+
+		x.keys[i] = keyToUp
+		y.keys = slices.Clone(y.keys[1:])
+		y.keys = slices.Insert(y.keys, 0, keyToDown)
+
+		t.removeInternal(x.children[i+1], key)
+	} else {
+		// case 2c
+		y := x.children[i]
+		z := x.children[i+1]
+		keyToMerge := x.keys[i]
+
+		y.keys = append(y.keys, keyToMerge)
+		y.n += 1
+		y.keys = append(y.keys, z.keys...)
+		y.n += z.n
+
+		if !y.isLeaf {
+			y.children = append(y.children, z.children...)
+		}
+
+		x.keys = slices.Delete(x.keys, i, i+1)
+		x.n--
+		x.children = slices.Delete(x.children, i+1, i+2)
+
+		clear(z.keys)
+		z.keys = z.keys[:0]
+		z.n = 0
+		clear(z.children)
+		z.children = z.children[:0]
+
+		if x.n == 0 {
+			t.root = y
+		}
+
+		t.removeInternal(y, key)
+	}
+}
+
+func (t *Tree) findRightBeforeKey(x *Element, i int) (*Element, int) {
+	y := x.children[i]
+
+	for !y.isLeaf {
+		y = y.children[y.n]
+	}
+
+	return y, y.keys[y.n-1]
+}
+
+func (t *Tree) findRightAfterKey(x *Element, i int) (*Element, int) {
+	y := x.children[i+1]
+
+	for !y.isLeaf {
+		y = y.children[0]
+	}
+
+	return y, y.keys[0]
+}
+
+func (t *Tree) liftKeyFromLeftNode(x *Element, key, i int) {
+	// case 3a-1
+	y := x.children[i]
+	z := x.children[i-1]
+	keyToDown := x.keys[i-1]
+	keyToUp := z.keys[z.n-1]
+
+	z.keys = slices.Clone(z.keys[:z.n-1])
+	z.n--
+	x.keys[i-1] = keyToUp
+	y.keys = slices.Insert(y.keys, 0, keyToDown)
+	y.n++
+
+	if !z.isLeaf {
+		childrenToMove := z.children[len(z.children)-1]
+		y.children = slices.Insert(y.children, 0, childrenToMove)
+		z.children = slices.Clone(z.children[:len(z.children)-1])
+	}
+
+	t.removeInternal(y, key)
+}
+
+func (t *Tree) liftKeyFromRightNode(x *Element, key, i int) {
+	// case 3a-2
+	y := x.children[i]
+	z := x.children[i+1]
+	keyToDown := x.keys[i]
+	keyToUp := z.keys[0]
+
+	z.keys = slices.Clone(z.keys[1:])
+	z.n--
+	x.keys[i] = keyToUp
+	y.keys = append(y.keys, keyToDown)
+	y.n++
+
+	if !z.isLeaf {
+		childrenToMove := z.children[0]
+		y.children = append(y.children, childrenToMove)
+		z.children = slices.Clone(z.children[1:])
+	}
+
+	t.removeInternal(y, key)
+}
+
+func (t *Tree) mergeKeyToLeftNode(x *Element, key, i int) {
+	// case 3b-1
+	y := x.children[i]
+	z := x.children[i-1]
+	keyToDown := x.keys[i-1]
+
+	z.keys = append(z.keys, keyToDown)
+	z.n++
+	z.keys = append(z.keys, y.keys...)
+	z.n += y.n
+	if !z.isLeaf {
+		z.children = append(z.children, y.children...)
+	}
+
+	x.keys = slices.Delete(x.keys, i-1, i)
+	x.n--
+	x.children = slices.Delete(x.children, i, i+1)
+	if x.n == 0 {
+		t.root = z
+	}
+
+	clear(y.keys)
+	y.keys = y.keys[:0]
+	y.n = 0
+	clear(y.children)
+	y.children = y.children[:0]
+
+	t.removeInternal(z, key)
+}
+
+func (t *Tree) mergeKeyToRightNode(x *Element, key, i int) {
+	// case 3b-2
+	y := x.children[i]
+	z := x.children[i+1]
+	keyToDown := x.keys[i]
+
+	y.keys = append(y.keys, keyToDown)
+	y.n++
+	y.keys = append(y.keys, z.keys...)
+	y.n += z.n
+	if !y.isLeaf {
+		y.children = append(y.children, z.children...)
+	}
+
+	x.keys = slices.Delete(x.keys, i, i+1)
+	x.n--
+	x.children = slices.Delete(x.children, i+1, i+2)
+	if x.n == 0 {
+		t.root = y
+	}
+
+	clear(z.keys)
+	z.keys = z.keys[:0]
+	z.n = 0
+	clear(z.children)
+	z.children = z.children[:0]
+
+	t.removeInternal(y, key)
 }
 
 func (t *Tree) printTree() {
@@ -204,12 +368,12 @@ func main() {
 	t.insert(9)
 	t.insert(3)
 	t.insert(7)
-	//t.insert(1)
-	//t.insert(2)
-	//t.insert(8)
-	//t.insert(6)
-	//t.insert(0)
-	//t.insert(4)
+	t.insert(1)
+	t.insert(2)
+	t.insert(8)
+	t.insert(6)
+	t.insert(0)
+	t.insert(4)
 
 	for {
 		fmt.Print("1:insert 2:remove 3:print > ")
