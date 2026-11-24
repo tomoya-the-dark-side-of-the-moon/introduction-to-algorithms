@@ -114,7 +114,7 @@ class Tree:
                 self.__remove_internal(x.children[i], key)
             else:
                 if x.children[i - 1].n >= self.min_degree:
-                    self.__sink_key_to_left_node(x, key, i)
+                    self.__lift_key_from_left_node(x, key, i)
                 else:
                     self.__merge_key_to_left_node(x, key, i)
         else:
@@ -129,9 +129,9 @@ class Tree:
                     self.__remove_internal(x.children[i], key)
                 else:
                     if i > 0 and x.children[i - 1].n >= self.min_degree:
-                        self.__sink_key_to_left_node(x, key, i)
+                        self.__lift_key_from_left_node(x, key, i)
                     elif x.children[i + 1].n >= self.min_degree:
-                        self.__sink_key_to_right_node(x, key, i)
+                        self.__lift_key_from_right_node(x, key, i)
                     elif i > 0 and x.children[i - 1].n == self.min_degree - 1:
                         self.__merge_key_to_left_node(x, key, i)
                     else:
@@ -200,7 +200,7 @@ class Tree:
 
         return y, y.keys[0]
 
-    def __sink_key_to_left_node(self, x, key, i):
+    def __lift_key_from_left_node(self, x, key, i):
         y = x.children[i]
         z = x.children[i - 1]
         key_to_down = x.keys[i - 1]
@@ -212,10 +212,29 @@ class Tree:
         y.keys.insert(0, key_to_down)
         y.n += 1
 
-        if not y.is_leaf:
+        if not z.is_leaf:
             children_to_move = z.children[-1]
             y.children.insert(0, children_to_move)
-            z.children = z.children[:-1]
+            z.children = z.chilren[:-1]
+
+        self.__remove_internal(y, key)
+
+    def __lift_key_from_right_node(self, x, key, i):
+        y = x.children[i]
+        z = x.children[i + 1]
+        key_to_down = x.keys[i]
+        key_to_up = z.keys[0]
+
+        z.keys = z.keys[1:]
+        z.n -= 1
+        x.keys[i] = key_to_up
+        y.keys.append(key_to_down)
+        y.n += 1
+
+        if not z.is_leaf:
+            children_to_move = z.children[0]
+            y.children.append(children_to_move)
+            z.childen = z.children[1:]
 
         self.__remove_internal(y, key)
 
@@ -266,25 +285,6 @@ class Tree:
 
         if x.n == 0:
             self.root = y
-
-        self.__remove_internal(y, key)
-
-    def __sink_key_to_right_node(self, x, key, i):
-        y = x.children[i]
-        z = x.children[i + 1]
-        key_to_down = x.keys[i]
-        key_to_up = z.keys[0]
-
-        z.keys = z.keys[1:]
-        z.n -= 1
-        x.keys[i] = key_to_up
-        y.keys.append(key_to_down)
-        y.n += 1
-
-        if not y.is_leaf:
-            children_to_move = z.children[0]
-            y.children.append(children_to_move)
-            z.children = z.children[1:]
 
         self.__remove_internal(y, key)
 
