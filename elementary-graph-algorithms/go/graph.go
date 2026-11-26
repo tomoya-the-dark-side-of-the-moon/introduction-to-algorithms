@@ -14,10 +14,11 @@ const (
 )
 
 type Vertex struct {
-	name        string
-	distance    int
-	predecessor *Vertex
-	color       Color
+	name                      string
+	distance                  int
+	discoveryTime, finishTime int
+	predecessor               *Vertex
+	color                     Color
 }
 
 type Edge struct {
