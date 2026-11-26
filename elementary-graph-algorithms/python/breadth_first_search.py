@@ -1,6 +1,7 @@
-from collections import deque
-from graph import Color, Edge, Graph, Vertex
 import math
+from collections import deque
+
+from graph import Color, Edge, Graph, Vertex
 
 
 def breadth_first_search(graph, s):

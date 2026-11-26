@@ -1,5 +1,5 @@
-from collections import defaultdict
 import enum
+from collections import defaultdict
 
 
 class Color(enum.Enum):
