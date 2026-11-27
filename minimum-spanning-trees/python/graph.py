@@ -8,6 +8,9 @@ class Vertex:
         self.weight = 0
         self.predecessor = None
 
+    def __lt__(self, other):
+        return self.weight < other.weight
+
 
 class Edge:
 
